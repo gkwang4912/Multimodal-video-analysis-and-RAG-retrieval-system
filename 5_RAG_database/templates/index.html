@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video RAG Assistant</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Tailwind CSS for utility classes if needed, though we write custom CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        dark: {
+                            bg: '#0f172a',
+                            surface: '#1e293b',
+                            border: '#334155',
+                            accent: '#3b82f6'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+
+<body class="bg-dark-bg text-gray-200 h-screen overflow-hidden font-sans">
+
+    <div class="flex h-full">
+        <!-- Left Panel: Video Player -->
+        <div class="w-1/2 flex flex-col border-r border-dark-border bg-black/50 relative">
+
+            <!-- Video Container -->
+            <div class="flex-1 flex items-center justify-center bg-black relative group">
+                <video id="mainVideo" controls class="max-w-full max-h-full w-full h-auto shadow-2xl">
+                    <p class="text-gray-500">請選擇影片播放</p>
+                </video>
+
+                <!-- Initial State Placeholder -->
+                <div id="videoPlaceholder"
+                    class="absolute inset-0 flex flex-col items-center justify-center bg-gray-900/95 text-center p-8 z-10 transition-all duration-300">
+                    <div
+                        class="bg-white/5 p-8 rounded-full mb-6 backdrop-blur-md border border-white/10 shadow-2xl animate-pulse-slow">
+                        <i class="fa-solid fa-cloud-arrow-up text-5xl text-blue-500"></i>
+                    </div>
+                    <h2 class="text-3xl font-bold mb-3 text-white tracking-tight">上傳影片</h2>
+                    <p class="text-gray-400 mb-8 max-w-sm text-lg">拖放 MP4 檔案至此，或點擊下方按鈕</p>
+
+                    <label for="videoInput"
+                        class="cursor-pointer group relative inline-flex items-center justify-center px-8 py-3 font-semibold text-white transition-all duration-200 bg-blue-600 rounded-full hover:bg-blue-500 hover:shadow-lg hover:shadow-blue-500/40 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-600 ring-offset-gray-900">
+                        <span
+                            class="absolute inset-0 w-full h-full -mt-1 rounded-lg opacity-30 bg-gradient-to-b from-transparent via-transparent to-black"></span>
+                        <span class="relative flex items-center gap-2">
+                            <i class="fa-solid fa-folder-open"></i> 選擇檔案
+                        </span>
+                    </label>
+                    <input type="file" id="videoInput" accept="video/*" class="hidden">
+                    <div class="mt-8 flex gap-4 text-sm text-gray-500">
+                        <span class="flex items-center gap-1"><i class="fa-regular fa-file-video"></i> MP4</span>
+                        <span class="flex items-center gap-1"><i class="fa-brands fa-webm"></i> WebM</span>
+                        <span class="flex items-center gap-1"><i class="fa-regular fa-circle-check"></i> 本地預覽</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Video Controls Bar (Custom overlay can be added here) -->
+        </div>
+
+        <!-- Right Panel: Chat Interface -->
+        <div class="w-1/2 flex flex-col bg-dark-bg relative">
+            <!-- Header -->
+            <div
+                class="h-16 border-b border-dark-border flex items-center justify-between px-6 bg-dark-surface/50 backdrop-blur-md z-20">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shadow-lg">
+                        <i class="fa-solid fa-robot text-white text-sm"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-semibold text-white tracking-tight">AI 影片分析助手</h1>
+                        <span class="text-xs text-green-400 flex items-center gap-1">
+                            <span class="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse"></span>
+                            Online
+                        </span>
+                    </div>
+                </div>
+                <button class="text-gray-400 hover:text-white transition-colors p-2 rounded-full hover:bg-white/5">
+                    <i class="fa-solid fa-gear"></i>
+                </button>
+            </div>
+
+            <!-- Chat Messages Area -->
+            <div id="chatContainer" class="flex-1 overflow-y-auto p-6 space-y-6 scroll-smooth">
+                <!-- Welcome Message -->
+                <div class="flex gap-4">
+                    <div
+                        class="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex-shrink-0 flex items-center justify-center mt-1">
+                        <i class="fa-solid fa-robot text-white text-xs"></i>
+                    </div>
+                    <div class="space-y-1 max-w-[85%]">
+                        <div class="text-xs text-gray-400 font-medium ml-1">AI Assistant</div>
+                        <div
+                            class="bg-dark-surface border border-dark-border p-4 rounded-2xl rounded-tl-none text-gray-200 shadow-sm">
+                            <p>您好！我是您的專屬影片分析助手。我已經準備好回答關於影片內容的問題。</p>
+                            <p class="mt-2 text-gray-400 text-sm">您可以問我：</p>
+                            <ul class="list-disc list-inside text-sm text-gray-400 mt-1 space-y-1">
+                                <li>「這部影片的主要內容是什麼？」</li>
+                                <li>「請幫我總結影片重點。」</li>
+                                <li>「有沒有提到關於...的畫面？」</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input Area -->
+            <div class="p-4 bg-dark-bg border-t border-dark-border z-20">
+                <div class="relative max-w-4xl mx-auto">
+                    <div
+                        class="bg-dark-surface border border-dark-border rounded-xl p-2 shadow-lg focus-within:ring-2 focus-within:ring-blue-500/50 transition-all">
+                        <textarea id="messageInput" rows="1" placeholder="輸入您的問題..."
+                            class="w-full bg-transparent text-white placeholder-gray-500 text-sm p-3 focus:outline-none resize-none max-h-32"
+                            oninput="this.style.height = ''; this.style.height = this.scrollHeight + 'px'"></textarea>
+                        <div class="flex justify-between items-center px-2 pb-1 pt-2">
+                            <div class="flex gap-2 text-gray-400">
+                                <!-- Future functionality buttons -->
+                                <button class="p-2 hover:bg-white/10 rounded-lg transition-colors text-xs"
+                                    title="Upload Image"><i class="fa-regular fa-image"></i></button>
+                                <button class="p-2 hover:bg-white/10 rounded-lg transition-colors text-xs"
+                                    title="Voice Input"><i class="fa-solid fa-microphone"></i></button>
+                            </div>
+                            <button id="sendBtn"
+                                class="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+                                <span>發送</span>
+                                <i class="fa-regular fa-paper-plane text-xs"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <p class="text-center text-xs text-gray-600 mt-3">AI 可能會產生不準確的資訊，請核對重要事實。</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Template for Source Images (Reference in JS) -->
+    <template id="sourceImageTemplate">
+        <div
+            class="relative group cursor-pointer border border-dark-border rounded-lg overflow-hidden w-24 h-24 bg-black">
+            <img src="" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+            <div
+                class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity">
+                <i class="fa-solid fa-magnifying-glass-plus text-white"></i>
+            </div>
+        </div>
+    </template>
+
+    <!-- Image Modal -->
+    <div id="imageModal" class="fixed inset-0 z-50 bg-black/90 hidden items-center justify-center p-4 backdrop-blur-sm"
+        onclick="this.classList.add('hidden')">
+        <img id="modalImage" class="max-w-full max-h-[90vh] rounded-lg shadow-2xl border border-white/20">
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+
+</html>
