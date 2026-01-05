@@ -21,7 +21,7 @@
 
 ```mermaid
 graph TD
-    User[使用者 (Browser)] <--> WebUI[Web Interface (Flask)]
+    User["使用者 (Browser)"] <--> WebUI["Web Interface (Flask)"]
     
     subgraph "Application Layer"
         WebUI <--> Server[server.py]
@@ -29,20 +29,20 @@ graph TD
     end
     
     subgraph "Data Storage"
-        QueryEngine <--> FAISS[(FAISS Index)]
-        QueryEngine <--> SQLite[(SQLite Metadata)]
+        QueryEngine <--> FAISS[("FAISS Index")]
+        QueryEngine <--> SQLite[("SQLite Metadata")]
     end
     
     subgraph "External AI Services"
-        QueryEngine <--> LMStudio[LM Studio API]
-        DataPipeline --> CLIP[CLIP Processor]
+        QueryEngine <--> LMStudio["LM Studio API"]
+        DataPipeline --> CLIP["CLIP Processor"]
     end
 
     subgraph "Data Processing Pipeline (Offline)"
-        VideoFile[Video File (.mp4)] --> Stage1[1. Visual Analysis]
-        VideoFile --> Stage2[2. Audio Transcription]
-        Stage1 & Stage2 --> Stage3[3. Alignment & Screenshot]
-        Stage3 --> Stage5[5. RAG Ingestion]
+        VideoFile["Video File (.mp4)"] --> Stage1["1. Visual Analysis"]
+        VideoFile --> Stage2["2. Audio Transcription"]
+        Stage1 & Stage2 --> Stage3["3. Alignment & Screenshot"]
+        Stage3 --> Stage5["5. RAG Ingestion"]
         Stage5 --> FAISS
         Stage5 --> SQLite
     end
@@ -57,23 +57,23 @@ graph TD
 ### 1. 離線處理流程 (Indexing)
 ```mermaid
 flowchart LR
-    Start(Input Video) --> A[analyze.py]
+    Start["Input Video"] --> A[analyze.py]
     Start --> B[transcribe.py]
     
     subgraph "Visual Analysis"
-    A -->|TransNetV2| Scenes[Scene Cuts]
-    A -->|YOLOv8| Objects[Object Events]
+    A -->|TransNetV2| Scenes["Scene Cuts"]
+    A -->|YOLOv8| Objects["Object Events"]
     end
     
     subgraph "Audio Analysis"
-    B -->|Whisper| Text[Transcript CSV]
+    B -->|Whisper| Text["Transcript CSV"]
     end
     
     Scenes & Objects & Text --> C[extract_screenshots.py]
-    C -->|Time Mapping| D[Aligned Captions & Images]
+    C -->|Time Mapping| D["Aligned Captions & Images"]
     
     D --> E[rag_ingest.py]
-    E -->|CLIP Encoding| F[Vector DB (FAISS) + Metadata (SQLite)]
+    E -->|CLIP Encoding| F["Vector DB (FAISS) + Metadata (SQLite)"]
 ```
 
 ### 2. 線上檢索流程 (Query)
